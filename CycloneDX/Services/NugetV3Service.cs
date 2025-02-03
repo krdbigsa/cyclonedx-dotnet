@@ -40,7 +40,7 @@ namespace CycloneDX.Services
     /// </summary>
     public class NugetV3Service : INugetService
     {
-        private readonly SourceRepository _sourceRepository;
+        private readonly Dictionary<string, SourceRepository> _sourceRepositories;
         private readonly SourceCacheContext _sourceCacheContext;
         private readonly CancellationToken _cancellationToken;
         private readonly ILogger _logger;
@@ -56,7 +56,7 @@ namespace CycloneDX.Services
         private const string _sha512Extension = ".nupkg.sha512";
 
         public NugetV3Service(
-            NugetInputModel nugetInput,
+            List<NugetInputModel> nugetInputs,
             IFileSystem fileSystem,
             List<string> packageCachePaths,
             IGithubService githubService,
@@ -70,7 +70,12 @@ namespace CycloneDX.Services
             _disableHashComputation = disableHashComputation;
             _logger = logger;
 
-            _sourceRepository = SetupNugetRepository(nugetInput);
+            _sourceRepositories = new Dictionary<string, SourceRepository>();
+            foreach (var nugetInput in nugetInputs)
+            {
+                _sourceRepositories.Add(nugetInput.nugetFeedUrl, SetupNugetRepository(nugetInput));
+            }
+
             _sourceCacheContext = new SourceCacheContext();
             _cancellationToken = CancellationToken.None;
         }
@@ -100,7 +105,7 @@ namespace CycloneDX.Services
         /// Normalize the version string according to
         /// https://learn.microsoft.com/en-us/nuget/concepts/package-versioning#normalized-version-numbers
         /// </summary>
-        private string NormalizeVersion(string version)
+        private static string NormalizeVersion(string version)
         {
             var separator = Math.Max(version.IndexOf('-'), version.IndexOf('+'));
             var part1 = separator < 0 ? version : version.Substring(0, separator);
@@ -114,20 +119,14 @@ namespace CycloneDX.Services
             return version;
         }
 
-        private SourceRepository SetupNugetRepository(NugetInputModel nugetInput)
+        private static SourceRepository SetupNugetRepository(NugetInputModel nugetInput)
         {
-            if (nugetInput == null || string.IsNullOrEmpty(nugetInput.nugetFeedUrl) ||
-                string.IsNullOrEmpty(nugetInput.nugetUsername) || string.IsNullOrEmpty(nugetInput.nugetPassword))
-            {
-                return Repository.Factory.GetCoreV3(nugetInput?.nugetFeedUrl ?? "https://api.nuget.org/v3/index.json");
-            }
-
-            var packageSource =
-                GetPackageSourceWithCredentials(nugetInput);
-            return Repository.Factory.GetCoreV3(packageSource);
+            return string.IsNullOrEmpty(nugetInput.nugetUsername) || string.IsNullOrEmpty(nugetInput.nugetPassword)
+                ? Repository.Factory.GetCoreV3(nugetInput.nugetFeedUrl)
+                : Repository.Factory.GetCoreV3(GetPackageSourceWithCredentials(nugetInput));
         }
 
-        private PackageSource GetPackageSourceWithCredentials(NugetInputModel nugetInput)
+        private static PackageSource GetPackageSourceWithCredentials(NugetInputModel nugetInput)
         {
             var packageSource = new PackageSource(nugetInput.nugetFeedUrl)
             {
@@ -141,10 +140,8 @@ namespace CycloneDX.Services
 
         private static byte[] ComputeSha215Hash(Stream stream)
         {
-            using (SHA512 sha = SHA512.Create())
-            {
-                return sha.ComputeHash(stream);
-            }
+            using SHA512 sha = SHA512.Create();
+            return sha.ComputeHash(stream);
         }
 
         private Component SetupComponent(string name, string version, Component.ComponentScope? scope)
@@ -166,12 +163,9 @@ namespace CycloneDX.Services
         {
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(version)) { return null; }
 
-            // https://docs.microsoft.com/en-us/nuget/reference/nuget-client-sdk - Download a package
-            var resource = await _sourceRepository.GetResourceAsync<FindPackageByIdResource>();
-
             var component = SetupComponent(name, version, scope);
             var nuspecFilename = GetCachedNuspecFilename(name, version);
-            var nuspecModel = await GetNuspec(name, version, nuspecFilename, resource).ConfigureAwait(false);
+            var nuspecModel = await GetNuspec(name, version, nuspecFilename, _sourceRepositories).ConfigureAwait(false);
             if (nuspecModel.hashBytes != null)
             {
                 var hex = BitConverter.ToString(nuspecModel.hashBytes).Replace("-", string.Empty);
@@ -305,23 +299,40 @@ namespace CycloneDX.Services
             return component;
         }
 
-        private async Task<NuspecModel> GetNuspec(string name, string version, string nuspecFilename,
-            FindPackageByIdResource resource)
+        private async Task<NuspecModel> GetNuspec(string name, string version, string nuspecFilename, IDictionary<string, SourceRepository> sourceRepositories)
         {
             var nuspecModel = new NuspecModel();
             if (nuspecFilename == null)
             {
-                var packageVersion = new NuGetVersion(version);
-                await using MemoryStream packageStream = new MemoryStream();
-                await resource.CopyNupkgToStreamAsync(name, packageVersion, packageStream, _sourceCacheContext,
-                    _logger, _cancellationToken);
-
-                using PackageArchiveReader packageReader = new PackageArchiveReader(packageStream);
-                nuspecModel.nuspecReader = await packageReader.GetNuspecReaderAsync(_cancellationToken);
-
-                if (!_disableHashComputation)
+                try
                 {
-                    nuspecModel.hashBytes = ComputeSha215Hash(packageStream);
+                    var packageVersion = new NuGetVersion(version);
+                    await using MemoryStream packageStream = new MemoryStream();
+                    foreach (var repository in sourceRepositories.Values)
+                    {
+                        // https://docs.microsoft.com/en-us/nuget/reference/nuget-client-sdk - Download a package
+                        var resource = await repository.GetResourceAsync<FindPackageByIdResource>();
+
+                        var isCopied = await resource.CopyNupkgToStreamAsync(name, packageVersion, packageStream, _sourceCacheContext,
+                            _logger, _cancellationToken);
+
+                        if (isCopied)
+                        {
+                            break;
+                        }
+                    }
+
+                    using PackageArchiveReader packageReader = new PackageArchiveReader(packageStream);
+                    nuspecModel.nuspecReader = await packageReader.GetNuspecReaderAsync(_cancellationToken);
+
+                    if (!_disableHashComputation)
+                    {
+                        nuspecModel.hashBytes = ComputeSha215Hash(packageStream);
+                    }
+                }
+                catch (Exception e)
+                {
+                    throw new InvalidOperationException($"An error occurred while trying to get the nuspec for '{name}.{version}'. Inner exception message: {e.Message}", e);
                 }
             }
             else

@@ -41,6 +41,7 @@ namespace CycloneDX
             var baseUrlUS = new Option<string>(new[] { "--baseUrlUsername", "-us" }, "Alternative NuGet repository username");
             var baseUrlUSP = new Option<string>(new[] { "--baseUrlUserPassword", "-usp" }, "Alternative NuGet repository username password/apikey");
             var isPasswordClearText = new Option<bool>(new[] { "--isBaseUrlPasswordClearText", "-uspct" }, "Alternative NuGet repository password is cleartext");
+            var nugetConfigPath = new Option<string>(new[] { "--nuget-config-path", "-ncp" }, "Path to the NuGet.config with alternative configuration of NuGet repositories. If defined, alternative NuGet repository URL, username and password are ignored.");
             var scanProjectReferences = new Option<bool>(new[] { "--recursive", "-rs" }, "To be used with a single project file, it will recursively scan project references of the supplied project file");
             var noSerialNumber = new Option<bool>(new[] { "--no-serial-number", "-ns" }, "Optionally omit the serial number from the resulting BOM");
             var githubUsername = new Option<string>(new[] { "--github-username", "-gu" }, "Optionally provide a GitHub username for license resolution. If set you also need to provide a GitHub personal access token");
@@ -63,7 +64,6 @@ namespace CycloneDX
             var scanProjectDeprecated = new Option<bool>(new[] {"-r" }, "(Deprecated use -rs instead) To be used with a single project file, it will recursively scan project references of the supplied project file.");
             var outputDirectoryDeprecated = new Option<string>(new[] { "--out", }, description: "(Deprecated use -output instead) The directory to write the BOM");
 
-
             RootCommand rootCommand = new RootCommand
             {
                 SolutionOrProjectFile,
@@ -78,6 +78,7 @@ namespace CycloneDX
                 baseUrlUS,
                 baseUrlUSP,
                 isPasswordClearText,
+                nugetConfigPath,
                 scanProjectReferences,
                 noSerialNumber,
                 githubUsername,
@@ -116,6 +117,7 @@ namespace CycloneDX
                     baseUrlUserName = context.ParseResult.GetValueForOption(baseUrlUS),
                     baseUrlUSP = context.ParseResult.GetValueForOption(baseUrlUSP),
                     isPasswordClearText = context.ParseResult.GetValueForOption(isPasswordClearText),
+                    nugetConfigPath = context.ParseResult.GetValueForOption(nugetConfigPath),
                     scanProjectReferences = context.ParseResult.GetValueForOption(scanProjectReferences) | context.ParseResult.GetValueForOption(scanProjectDeprecated),
                     noSerialNumber = context.ParseResult.GetValueForOption(noSerialNumber),
                     githubUsername = context.ParseResult.GetValueForOption(githubUsername),
@@ -131,7 +133,7 @@ namespace CycloneDX
                     setVersion = context.ParseResult.GetValueForOption(setVersion),
                     setType = context.ParseResult.GetValueForOption(setType),
                     includeProjectReferences = context.ParseResult.GetValueForOption(includeProjectReferences)
-                };                
+                };
 
                 Runner runner = new Runner();
                 var taskStatus = await runner.HandleCommandAsync(options);

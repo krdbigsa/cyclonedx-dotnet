@@ -34,11 +34,12 @@ namespace CycloneDX.Models
         public string baseUrlUserName { get; set; }
         public string baseUrlUSP { get; set; }
         public bool isPasswordClearText { get; set; }
+        public string nugetConfigPath { get; set; }
         public bool scanProjectReferences { get; set; }
         public bool noSerialNumber { get; set; }
         public string githubUsername { get; set; }
         public string githubT { get; set; }
-        public string githubBT { get; set; }        
+        public string githubBT { get; set; }
         public bool enableGithubLicenses { get; set; }
         public bool disablePackageRestore { get; set; }
         public bool disableHashComputation { get; set; }

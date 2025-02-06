@@ -42,7 +42,7 @@ namespace CycloneDX.Services
         /// </summary>
         /// <param name="solutionFilePath"></param>
         /// <returns></returns>
-        public async Task<HashSet<string>> GetSolutionProjectReferencesAsync(string solutionFilePath)
+        public async Task<HashSet<string>> GetSolutionProjectReferencesAsync(string solutionFilePath, string[] excludeProjectRegexes)
         {
             var solutionFolder = _fileSystem.Path.GetDirectoryName(solutionFilePath);
             var projects = new HashSet<string>();
@@ -67,6 +67,27 @@ namespace CycloneDX.Services
                 }
             }
 
+            if (excludeProjectRegexes.Length > 0)
+            {
+                var excludedProjects = projects
+                    .Where(project => excludeProjectRegexes.Any(r => Regex.IsMatch(project, r)))
+                    .ToHashSet();
+
+                if (excludedProjects.Count > 0)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("» Excluded projects by provided regexes:");
+                    foreach (var project in excludedProjects)
+                    {
+                        Console.WriteLine($"  {project}");
+                    }
+
+                    await Console.Out.FlushAsync().ConfigureAwait(false);
+
+                    projects = projects.Where(project => excludedProjects.Contains(project) == false).ToHashSet();
+                }
+            }
+
             var projectList = new List<string>(projects);
             foreach (var project in projectList)
             {
@@ -82,7 +103,7 @@ namespace CycloneDX.Services
         /// </summary>
         /// <param name="solutionFilePath"></param>
         /// <returns></returns>
-        public async Task<HashSet<DotnetDependency>> GetSolutionDotnetDependencys(string solutionFilePath, string baseIntermediateOutputPath, bool excludeTestProjects, string framework, string runtime)
+        public async Task<HashSet<DotnetDependency>> GetSolutionDotnetDependencys(string solutionFilePath, string baseIntermediateOutputPath, bool excludeTestProjects, string[] excludeProjectRegexes, string framework, string runtime)
         {
             if (!_fileSystem.File.Exists(solutionFilePath))
             {
@@ -96,7 +117,7 @@ namespace CycloneDX.Services
 
             var packages = new HashSet<DotnetDependency>();
 
-            var projectPaths = await GetSolutionProjectReferencesAsync(solutionFilePath).ConfigureAwait(false);
+            var projectPaths = await GetSolutionProjectReferencesAsync(solutionFilePath, excludeProjectRegexes).ConfigureAwait(false);
 
             if (projectPaths.Count == 0)
             {

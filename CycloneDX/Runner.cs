@@ -72,6 +72,7 @@ namespace CycloneDX
             bool json = options.json;
             bool excludeDev = options.excludeDev;
             bool excludetestprojects = options.excludeTestProjects;
+            string[] excludedProjectRegexes = options.excludeProjectRegexes;
             bool scanProjectReferences = options.scanProjectReferences;
             bool noSerialNumber = options.noSerialNumber;
             string githubUsername = options.githubUsername;
@@ -176,7 +177,7 @@ namespace CycloneDX
                         Console.Error.WriteLine($"No file found at path {SolutionOrProjectFile}");
                         return (int)ExitCode.InvalidOptions;
                     }
-                    packages = await solutionFileService.GetSolutionDotnetDependencys(fullSolutionOrProjectFilePath, baseIntermediateOutputPath, excludetestprojects, framework, runtime).ConfigureAwait(false);
+                    packages = await solutionFileService.GetSolutionDotnetDependencys(fullSolutionOrProjectFilePath, baseIntermediateOutputPath, excludetestprojects, excludedProjectRegexes, framework, runtime).ConfigureAwait(false);
                     topLevelComponent.Name = fileSystem.Path.GetFileNameWithoutExtension(SolutionOrProjectFile);
                 }
                 else if (Utils.IsSupportedProjectType(SolutionOrProjectFile) && scanProjectReferences)

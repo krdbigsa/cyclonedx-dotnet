@@ -29,6 +29,7 @@ namespace CycloneDX.Models
         public bool json { get; set; }
         public bool excludeDev { get; set; }
         public bool excludeTestProjects { get; set; }
+        public string[] excludeProjectRegexes { get; set; }
         public bool includeProjectReferences { get; set; }
         public string baseUrl { get; set; }
         public string baseUrlUserName { get; set; }

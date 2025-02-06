@@ -37,6 +37,10 @@ namespace CycloneDX
             var json = new Option<bool>(new[] { "--json", "-j" }, "Produce a JSON BOM instead of XML");
             var excludeDev = new Option<bool>(new[] { "--exclude-dev", "-ed" }, "Exclude development dependencies from the BOM (see https://github.com/NuGet/Home/wiki/DevelopmentDependency-support-for-PackageReference)");
             var excludetestprojects = new Option<bool>(new[] { "--exclude-test-projects", "-t" }, "Exclude test projects from the BOM");
+            var excludeProjectRegexes = new Option<string[]>(new[] { "--exclude-project-regex", "-epr" }, "Exclude project from the BOM with regex. Can be provided multiple times. Will only be used with solution files.")
+            {
+                Arity = ArgumentArity.OneOrMore
+            };
             var baseUrl = new Option<string>(new[] { "--url", "-u" }, "Alternative NuGet repository URL to https://<yoururl>/nuget/<yourrepository>/v3/index.json");
             var baseUrlUS = new Option<string>(new[] { "--baseUrlUsername", "-us" }, "Alternative NuGet repository username");
             var baseUrlUSP = new Option<string>(new[] { "--baseUrlUserPassword", "-usp" }, "Alternative NuGet repository username password/apikey");
@@ -74,6 +78,7 @@ namespace CycloneDX
                 json,
                 excludeDev,
                 excludetestprojects,
+                excludeProjectRegexes,
                 baseUrl,
                 baseUrlUS,
                 baseUrlUSP,
@@ -113,6 +118,7 @@ namespace CycloneDX
                     json = context.ParseResult.GetValueForOption(json),
                     excludeDev = context.ParseResult.GetValueForOption(excludeDev) | context.ParseResult.GetValueForOption(excludeDevDeprecated),
                     excludeTestProjects = context.ParseResult.GetValueForOption(excludetestprojects),
+                    excludeProjectRegexes = context.ParseResult.GetValueForOption(excludeProjectRegexes),
                     baseUrl = context.ParseResult.GetValueForOption(baseUrl),
                     baseUrlUserName = context.ParseResult.GetValueForOption(baseUrlUS),
                     baseUrlUSP = context.ParseResult.GetValueForOption(baseUrlUSP),

@@ -23,7 +23,7 @@ namespace CycloneDX.Interfaces
 {
     public interface ISolutionFileService
     {
-        Task<HashSet<string>> GetSolutionProjectReferencesAsync(string solutionFilePath);
-        Task<HashSet<DotnetDependency>> GetSolutionDotnetDependencys(string solutionFilePath, string baseIntermediateOutputPath, bool excludeTestProjects, string framework, string runtime);
+        Task<HashSet<string>> GetSolutionProjectReferencesAsync(string solutionFilePath, string[] excludeProjectRegexes);
+        Task<HashSet<DotnetDependency>> GetSolutionDotnetDependencys(string solutionFilePath, string baseIntermediateOutputPath, bool excludeTestProjects, string[] excludeProjectRegexes, string framework, string runtime);
     }
 }

@@ -20,3 +20,5 @@ CycloneDX/Properties/launchSettings.json
 MSBuild_Logs/
 
 CycloneDX.sln.DotSettings.user
+
+nupkgs/

@@ -2,13 +2,13 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <PackageId>CycloneDX</PackageId>
+    <PackageId>KgCycloneDX</PackageId>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Description>A .NET Core global tool to generate CycloneDX bill-of-material documents for use with Software Composition Analysis (SCA).</Description>
     <PackAsTool>true</PackAsTool>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <ToolCommandName>dotnet-CycloneDX</ToolCommandName>
+    <ToolCommandName>dotnet-KgCycloneDX</ToolCommandName>
     <_SkipUpgradeNetAnalyzersNuGetWarning>true</_SkipUpgradeNetAnalyzersNuGetWarning>
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>

@@ -27,6 +27,8 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      ENABLE_PUBLISH: false
     steps:
       - uses: actions/checkout@v4.1.2
       - name: Setup dotnet
@@ -69,12 +71,14 @@ jobs:
         run: docker run --rm -v ${GITHUB_WORKSPACE}:/usr/src/project cyclonedx/cyclonedx-dotnet:${{ steps.package_release.outputs.version }} /usr/src/project/CycloneDX.sln -j -o /usr/src/project 
         
       - name: Publish package to NuGet
+        if: env.ENABLE_PUBLISH == 'true'
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           dotnet nuget push --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" ${{ steps.package_release.outputs.package_filename }}
 
       - name: Publish Docker image to Docker Hub
+        if: env.ENABLE_PUBLISH == 'true'
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
         run: |

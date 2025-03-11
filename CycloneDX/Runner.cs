@@ -132,7 +132,7 @@ namespace CycloneDX
             }
 
             if (string.IsNullOrEmpty(options.nugetConfigPath) == false &&
-                this.fileSystem.Path.Exists(options.nugetConfigPath) == false)
+                this.fileSystem.File.Exists(options.nugetConfigPath) == false)
             {
                 Console.Error.WriteLine("Option -ncp points to a file path that does not exist");
                 return (int)ExitCode.InvalidOptions;

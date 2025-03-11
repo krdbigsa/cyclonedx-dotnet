@@ -17,7 +17,7 @@ namespace CycloneDX.Services
         {
             var nugetLogger = new NuGet.Common.NullLogger();
 
-            List<NugetInputModel> nugetInputs = [];
+            List<NugetInputModel> nugetInputs = new List<NugetInputModel>();
 
             if (string.IsNullOrEmpty(option.nugetConfigPath) == false)
             {
